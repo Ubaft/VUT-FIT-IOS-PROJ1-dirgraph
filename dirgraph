@@ -1,0 +1,74 @@
+#!/bin/sh
+# VUT FIT IOS
+# Created by Ubaft
+set -o pipefail
+export POSIXLY_CORRECT=yes
+
+regex='$^'
+normalizace=0
+ROOT="$PWD"
+
+while getopts "ni:" opt
+do
+case $opt in
+    n) normalizace=1 ;;
+    i) regex=$OPTARG ;;
+    :) exit 1 ;;
+    \?) exit 1 ;;
+esac
+done
+shift $(($OPTIND - 1))
+if [ $# -eq 1 ]; then
+	ROOT="$*"
+    [ ! -d "$ROOT" ] && echo "Error: directory doesnt exist" && exit 1
+    cd "$ROOT"
+fi
+
+base_dir_test=$(echo "${PWD##*/}" | grep -E "$regex" | wc -l)
+[ "$base_dir_test" -ne "0" ] && echo "Error: Regex ignors root directory" && exit 1
+
+find . >/dev/null 2>&1
+[ $? -ne "0" ] && echo "Error: some files cant be accesed" && exit 1 
+
+UNDER_100_B=$(find -L . -type f -size -$((100))c | perl -n -e "print unless grep(/$regex/, split(/\//))" | wc -l)
+links=$(find . -type l | perl -n -e "print unless grep(/$regex/, split(/\//))" | wc -l 2>/dev/null) #do "find -L . -xtype l" to include symlinks in symlinks but some systems are incompatible
+UNDER_100_B=$(($UNDER_100_B + $links))
+max=$UNDER_100_B
+
+UNDER_1_KB=$(find -L . -type f -size +$((99))c -size -$((1024))c | perl -n -e "print unless grep(/$regex/, split(/\//))" | wc -l) 
+[ "$max" -le "$UNDER_1_KB" ] && max=$UNDER_1_KB
+UNDER_10_KB=$(find -L . -type f -size +$(((1024)-1))c -size -$((10*1024))c | perl -n -e "print unless grep(/$regex/, split(/\//))" | wc -l) 
+[ "$max" -le "$UNDER_10_KB" ] && max=$UNDER_10_KB
+UNDER_100_KB=$(find -L . -type f -size +$(((10*1024)-1))c -size -$((100*1024))c | perl -n -e "print unless grep(/$regex/, split(/\//))" | wc -l) 
+[ "$max" -le "$UNDER_100_KB" ] && max=$UNDER_100_KB
+UNDER_1_MB=$(find -L . -type f -size +$(((100*1024)-1))c -size -$((1024*1024))c | perl -n -e "print unless grep(/$regex/, split(/\//))" | wc -l) 
+[ "$max" -le "$UNDER_1_MB" ] && max=$UNDER_1_MB
+UNDER_10_MB=$(find -L . -type f -size +$(((1024*1024)-1))c -size -$((10*1024*1024))c | perl -n -e "print unless grep(/$regex/, split(/\//))" | wc -l) 
+[ "$max" -le "$UNDER_10_MB" ] && max=$UNDER_10_MB
+UNDER_100_MB=$(find -L . -type f -size +$(((10*1024*1024)-1))c -size -$((100*1024*1024))c | perl -n -e "print unless grep(/$regex/, split(/\//))" | wc -l) 
+[ "$max" -le "$UNDER_100_MB" ] && max=$UNDER_100_MB
+UNDER_1_GB=$(find -L . -type f -size +$(((100*1024*1024)-1))c -size -$((1024*1024*1024))c | perl -n -e "print unless grep(/$regex/, split(/\//))" | wc -l) 
+[ "$max" -le "$UNDER_1_GB" ] && max=$UNDER_1_GB
+LARGER=$(find -L . -type f -size +$(((1024*1024*1024)-1))c | perl -n -e "print unless grep(/$regex/, split(/\//))" | wc -l) 
+[ "$max" -le "$LARGER" ] && max=$LARGER
+
+maxlen=79
+[ -t 1 ] && maxlen=$(($(tput cols)-13))
+[ "$normalizace" = "0" ] && maxlen=1 && max=1
+[ "$max" -le "$maxlen" ] && maxlen=1 && max=1
+
+echo "Root directory: $PWD"
+echo "Directories: $(find -L . -type d | perl -n -e "print unless grep(/$regex/, split(/\//))" | wc -l | tr -d "[ :blank: ]")" 
+echo "All files: $(($(find -L . -type f | perl -n -e "print unless grep(/$regex/, split(/\//))" | wc -l) + $links))"
+echo "File size histogram:"
+
+printf "  <100 B  : "; perl -e "print('#' x (($UNDER_100_B * $maxlen / $max)));" ; printf "\n"
+printf "  <1 KiB  : "; perl -e "print('#' x (($UNDER_1_KB * $maxlen / $max)));" ; printf "\n"
+printf "  <10 KiB : "; perl -e "print('#' x (($UNDER_10_KB * $maxlen / $max)));" ; printf "\n"
+printf "  <100 KiB: "; perl -e "print('#' x (($UNDER_100_KB * $maxlen / $max)));" ; printf "\n"
+printf "  <1 MiB  : "; perl -e "print('#' x (($UNDER_1_MB * $maxlen / $max)));" ; printf "\n"
+printf "  <10 MiB : "; perl -e "print('#' x (($UNDER_10_MB * $maxlen / $max)));" ; printf "\n"
+printf "  <100 MiB: "; perl -e "print('#' x (($UNDER_100_MB * $maxlen / $max)));" ; printf "\n"
+printf "  <1 Gib  : "; perl -e "print('#' x (($UNDER_1_GB * $maxlen / $max)));" ; printf "\n"
+printf "  >=1 GiB : "; perl -e "print('#' x (($LARGER * $maxlen / $max)));" ; printf "\n"
+exit 0
