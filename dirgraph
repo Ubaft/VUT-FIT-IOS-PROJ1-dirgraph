@@ -27,7 +27,7 @@ fi
 base_dir_test=$(echo "${PWD##*/}" | grep -E "$regex" | wc -l)
 [ "$base_dir_test" -ne "0" ] && echo "Error: Regex ignors root directory" && exit 1
 
-find . >/dev/null 2>&1
+find -L . >/dev/null 2>&1
 [ $? -ne "0" ] && echo "Error: some files cant be accesed" && exit 1 
 
 UNDER_100_B=$(find -L . -type f -size -$((100))c | perl -n -e "print unless grep(/$regex/, split(/\//))" | wc -l)
