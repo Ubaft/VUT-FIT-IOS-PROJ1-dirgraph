@@ -52,7 +52,7 @@ UNDER_1_GB=$(find -L . -type f -size +$(((100*1024*1024)-1))c -size -$((1024*102
 LARGER=$(find -L . -type f -size +$(((1024*1024*1024)-1))c | perl -n -e "print unless grep(/$regex/, split(/\//))" | wc -l) 
 [ "$max" -le "$LARGER" ] && max=$LARGER
 
-maxlen=79
+maxlen=67
 [ -t 1 ] && maxlen=$(($(tput cols)-13))
 [ "$normalizace" = "0" ] && maxlen=1 && max=1
 [ "$max" -le "$maxlen" ] && maxlen=1 && max=1
@@ -69,6 +69,6 @@ printf "  <100 KiB: "; perl -e "print('#' x (($UNDER_100_KB * $maxlen / $max)));
 printf "  <1 MiB  : "; perl -e "print('#' x (($UNDER_1_MB * $maxlen / $max)));" ; printf "\n"
 printf "  <10 MiB : "; perl -e "print('#' x (($UNDER_10_MB * $maxlen / $max)));" ; printf "\n"
 printf "  <100 MiB: "; perl -e "print('#' x (($UNDER_100_MB * $maxlen / $max)));" ; printf "\n"
-printf "  <1 Gib  : "; perl -e "print('#' x (($UNDER_1_GB * $maxlen / $max)));" ; printf "\n"
+printf "  <1 GiB  : "; perl -e "print('#' x (($UNDER_1_GB * $maxlen / $max)));" ; printf "\n"
 printf "  >=1 GiB : "; perl -e "print('#' x (($LARGER * $maxlen / $max)));" ; printf "\n"
 exit 0
